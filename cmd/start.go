@@ -45,9 +45,15 @@ var startCmd = &cobra.Command{
 		reportPath := viper.GetString(REPORT_PATH)
 		logPath := viper.GetString(LOG_PATH)
 		alertPath := viper.GetString(ALERT_PATH)
+		pID := viper.GetInt("pID")
 
 		if reportTime == 0 || alertWindow == 0 || threshold == 0 || fileName == "" {
 			fmt.Println("config.yml: bad configuration")
+			os.Exit(1)
+		}
+
+		if pID != -1 {
+			fmt.Println("One process already running, kill process or change config.yml")
 			os.Exit(1)
 		}
 
