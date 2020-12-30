@@ -1,5 +1,5 @@
 alert-path: /tmp/alert.log
-alert-window: 10
+alert-window: 5
 filename: /tmp/access.log
 log-path: /tmp/fluffy.log
 pid: -1

@@ -90,7 +90,7 @@ func (monitor *Monitor) reset() {
 
 func (monitor *Monitor) showErrorRate(events, errorCount int) {
 	var errorRate float32 = float32(errorCount) / float32(events) * 100
-	monitor.out.WriteString(fmt.Sprintf("\n---ERROR RATE: %.2f%%----\n\n", errorRate))
+	monitor.out.WriteString(fmt.Sprintf("\n---ERROR RATE: %.2f%%----\n\n\n", errorRate))
 	// fmt.Printf("\n---ERROR RATE: %.2f%%----\n", errorRate)
 }
 

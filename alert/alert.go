@@ -73,11 +73,11 @@ func (monitor *alertMonitor) isOnAlert() {
 
 	monitor.cleanUp(index)
 
-	if int(requestPerSecond) > monitor.threshold {
+	if int(requestPerSecond) > monitor.threshold && !monitor.onAlert {
 		monitor.onAlert = true
 		monitor.out.WriteString(fmt.Sprintf("Monitor on alert %f at time %s\n", requestPerSecond, time.Now().UTC().String()))
 		// fmt.Printf( "Monitor on alert %f at time %s\n", requestPerSecond, time.Now().UTC().String())
-	} else if monitor.onAlert {
+	} else if int(requestPerSecond) < monitor.threshold && monitor.onAlert {
 		monitor.onAlert = false
 		monitor.out.WriteString(fmt.Sprintf("Monitor out of alert %f at %s\n", requestPerSecond, time.Now().UTC().String()))
 		// fmt.Printf("Monitor out of alert %f at %s\n", requestPerSecond, time.Now().UTC().String())
