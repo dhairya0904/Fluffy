@@ -7,7 +7,7 @@ import (
 
 var line = "--------------------------------------------------------------------\n"
 
-var DOG string = "         (__)\n         (oo)\n   /------\\/\n  / |    ||\n *  /\\---/\\\n    ~~   ~~"
+var DOG string = "         (__)\n         (oo)\n   /------\\/\n  / |    ||\n *  /\\---/\\\n    ~~   ~~\n"
 var REPORT_MAX_HITS string = line + "\t\tReport for DATE: %s\n" + line + "PATH\t\t\tCOUNT\n" + line
 var ROW = "%s\t\t\t%d\n"
 

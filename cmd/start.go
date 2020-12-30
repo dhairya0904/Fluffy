@@ -28,6 +28,7 @@ const (
 )
 
 // this command will start log monitoring, config will be picked from config.yml
+// Run this using shell script start-server to run as a daemon
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Fluffy will start monitoring your logs",
@@ -71,6 +72,7 @@ func startMonitoring(reportTime, alertWindow, threshold int, fileName, reportPat
 	f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
+		os.Exit(1)
 	}
 	defer f.Close()
 	log.SetOutput(f)
@@ -109,5 +111,4 @@ func startMonitoring(reportTime, alertWindow, threshold int, fileName, reportPat
 	viper.WriteConfig()
 
 	wg.Wait()
-	os.Exit(1)
 }

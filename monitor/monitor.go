@@ -12,11 +12,11 @@ import (
 )
 
 type Monitor struct {
-	events              []domain.Event
-	mu                  sync.RWMutex
-	errorCount          int
-	out                 *os.File
-	reportTimeInSeconds time.Duration
+	events              []domain.Event // temporary storage for incoming events
+	mu                  sync.RWMutex   // Locks
+	errorCount          int            // Metric to store failed requests
+	out                 *os.File       // output file, where reports will be written
+	reportTimeInSeconds time.Duration  // Time in seconds, report will be generated after every {reportTimeInSeconds}
 }
 
 func NewMonitor(reportTime int) *Monitor {
@@ -46,9 +46,7 @@ monitor:
 	for {
 		select {
 		case event := <-events:
-			monitor.mu.Lock()
 			monitor.consume(event)
-			monitor.mu.Unlock()
 		case <-ticker.C:
 			go monitor.show()
 		case <-ctx.Done():
@@ -59,6 +57,8 @@ monitor:
 
 func (monitor *Monitor) consume(event domain.Event) {
 
+	monitor.mu.Lock()
+	defer monitor.mu.Unlock()
 	errorCount := event.Status / 100
 
 	if errorCount == 5 {
@@ -90,7 +90,7 @@ func (monitor *Monitor) reset() {
 
 func (monitor *Monitor) showErrorRate(events, errorCount int) {
 	var errorRate float32 = float32(errorCount) / float32(events) * 100
-	monitor.out.WriteString(fmt.Sprintf("\n---ERROR RATE: %.2f%%----\n", errorRate))
+	monitor.out.WriteString(fmt.Sprintf("\n---ERROR RATE: %.2f%%----\n\n", errorRate))
 	// fmt.Printf("\n---ERROR RATE: %.2f%%----\n", errorRate)
 }
 

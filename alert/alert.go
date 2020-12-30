@@ -12,12 +12,12 @@ import (
 )
 
 type alertMonitor struct {
-	events      []domain.Event
-	mu          sync.RWMutex
-	onAlert     bool
-	out         *os.File
-	threshold   int
-	alertWindow time.Duration
+	events      []domain.Event /// Temporary storage for storing events
+	mu          sync.RWMutex   /// Mutex
+	onAlert     bool           /// Flag to show if service is on alert
+	out         *os.File       /// Output file where alerts will be written
+	threshold   int            /// threshold(requests/sec) after which alarm will go off
+	alertWindow time.Duration  /// Window to consider for calculating requests/seconds
 }
 
 func NewAlertMonitor(alertWindowInSeconds int, threshold int) *alertMonitor {
@@ -31,7 +31,7 @@ func (monitor *alertMonitor) StartAlertMonitor(ctx context.Context, wg *sync.Wai
 	ticker := time.NewTicker(1 * time.Second)
 
 	if err != nil {
-		log.Print("Error creating file for reports", err)
+		log.Print("Error creating file for alerts", err)
 		os.Exit(1)
 	}
 	monitor.out = f
@@ -94,16 +94,13 @@ func getIndexBeforeGivenTimeStamp(events []domain.Event, twoMinutes time.Time) i
 	index := -1
 
 	for low <= high {
-
 		mid := low + (high-low)/2
-
 		if events[mid].Time.After(twoMinutes) {
 			high = mid - 1
 		} else {
 			index = mid
 			low = mid + 1
 		}
-
 	}
 	return index
 }

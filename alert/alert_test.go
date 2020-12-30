@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-/// Generator will generate traffic of 10 req/s
+/// Generator will generate traffic at 10 req/s
 /// monitor will be in alert state after 5 seconds
 func TestAlert(t *testing.T) {
 
@@ -50,7 +50,7 @@ func TestAlertForTrafficNotInWindow(t *testing.T) {
 	go alertMonitor.StartAlertMonitor(ctx, &wg, events, f.Name())
 	generateTraffic(events, 4)
 	if alertMonitor.onAlert {
-		t.Errorf("Monitor should be in alert state")
+		t.Errorf("Monitor should not be in alert state")
 	}
 	cancel()
 }
