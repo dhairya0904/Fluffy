@@ -1,0 +1,8 @@
+alert-path: /tmp/alert.log
+alert-window: 10
+filename: /tmp/access.log
+log-path: /tmp/fluffy.log
+pid: -1
+report-path: /tmp/report.log
+report-time: 10
+threshold: 10

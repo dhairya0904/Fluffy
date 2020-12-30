@@ -1,51 +1,113 @@
-/*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
+	"context"
+	"fluffy/alert"
+	"fluffy/domain"
+	"fluffy/monitor"
+	"fluffy/reader"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-// startCmd represents the start command
+const (
+	REPORT_TIME  = "report-time"
+	ALERT_WINDOW = "alert-window"
+	THRESHOLD    = "threshold"
+	FILENAME     = "fileName"
+	REPORT_PATH  = "report-path"
+	LOG_PATH     = "log-path"
+	ALERT_PATH   = "alert-path"
+)
+
+// this command will start log monitoring, config will be picked from config.yml
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Fluffy will start monitoring your logs",
+	Long:  `Set configuration in config.yml. Fluffy will use the config and populate all reports and alerts in given file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("start called")
+
+		viper.SetConfigName("config")
+		viper.AddConfigPath(".")
+		viper.ReadInConfig()
+		reportTime := viper.GetInt(REPORT_TIME)
+		alertWindow := viper.GetInt(ALERT_WINDOW)
+		threshold := viper.GetInt(THRESHOLD)
+		fileName := viper.GetString(FILENAME)
+		reportPath := viper.GetString(REPORT_PATH)
+		logPath := viper.GetString(LOG_PATH)
+		alertPath := viper.GetString(ALERT_PATH)
+
+		if reportTime == 0 || alertWindow == 0 || threshold == 0 || fileName == "" {
+			fmt.Println("config.yml: bad configuration")
+			os.Exit(1)
+		}
+
+		startMonitoring(reportTime, alertWindow, threshold, fileName, reportPath, logPath, alertPath)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+}
 
-	// Here you will define your flags and configuration settings.
+/// Will start monitoring the given log file.
+func startMonitoring(reportTime, alertWindow, threshold int, fileName, reportPath, logPath, alertPath string) {
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// startCmd.PersistentFlags().String("foo", "", "A help for foo")
+	pID := os.Getpid()
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// startCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	viper.Set("pID", pID)
+	viper.WriteConfig()
+
+	f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+	log.SetOutput(f)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	reader := reader.NewReader()
+	eventsMonitor := make(chan domain.Event)
+	eventsAlert := make(chan domain.Event)
+
+	reader.Subscribe(eventsMonitor)
+	reader.Subscribe(eventsAlert)
+
+	monitor := monitor.NewMonitor(reportTime)
+	alertMonitor := alert.NewAlertMonitor(alertWindow, threshold)
+
+	go reader.StartPublishing(ctx, &wg, fileName)
+	go monitor.StartMonitor(ctx, &wg, eventsMonitor, reportPath)
+	go alertMonitor.StartAlertMonitor(ctx, &wg, eventsAlert, alertPath)
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigs
+		log.Println()
+		log.Println(sig)
+		cancel()
+	}()
+
+	<-ctx.Done()
+
+	viper.Set("pID", -1)
+	viper.WriteConfig()
+
+	wg.Wait()
+	os.Exit(1)
 }

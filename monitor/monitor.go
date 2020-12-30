@@ -1,28 +1,48 @@
 package monitor
 
 import (
+	"context"
 	"fluffy/domain"
 	"fmt"
+	"log"
+	"os"
 	"sort"
 	"sync"
 	"time"
 )
 
 type Monitor struct {
-	events     []domain.Event
-	mu         sync.RWMutex
-	errorCount int
+	events              []domain.Event
+	mu                  sync.RWMutex
+	errorCount          int
+	out                 *os.File
+	reportTimeInSeconds time.Duration
 }
 
-func NewMonitor() *Monitor {
+func NewMonitor(reportTime int) *Monitor {
+
 	events := make([]domain.Event, 0)
-	return &Monitor{events: events, errorCount: 0}
+	return &Monitor{events: events, errorCount: 0, reportTimeInSeconds: time.Duration(reportTime) * time.Second}
 }
 
-func (monitor *Monitor) StartMonitor(events chan domain.Event, done chan bool) {
+func (monitor *Monitor) StartMonitor(ctx context.Context, wg *sync.WaitGroup, events chan domain.Event, reportPath string) {
 
-	ticker := time.NewTicker(10 * time.Second)
+	f, err := os.Create(reportPath)
+	ticker := time.NewTicker(monitor.reportTimeInSeconds)
 
+	if err != nil {
+		log.Print("Error creating file for reports", err)
+		os.Exit(1)
+	}
+	monitor.out = f
+
+	defer monitor.out.Close()
+	defer wg.Done()
+	defer ticker.Stop()
+
+	f.WriteString(fmt.Sprintf(DOG))
+
+monitor:
 	for {
 		select {
 		case event := <-events:
@@ -31,8 +51,8 @@ func (monitor *Monitor) StartMonitor(events chan domain.Event, done chan bool) {
 			monitor.mu.Unlock()
 		case <-ticker.C:
 			go monitor.show()
-		case <-done:
-			return
+		case <-ctx.Done():
+			break monitor
 		}
 	}
 }
@@ -70,7 +90,8 @@ func (monitor *Monitor) reset() {
 
 func (monitor *Monitor) showErrorRate(events, errorCount int) {
 	var errorRate float32 = float32(errorCount) / float32(events) * 100
-	fmt.Printf("\n---ERROR RATE: %.2f%%----\n", errorRate)
+	monitor.out.WriteString(fmt.Sprintf("\n---ERROR RATE: %.2f%%----\n", errorRate))
+	// fmt.Printf("\n---ERROR RATE: %.2f%%----\n", errorRate)
 }
 
 func (monitor *Monitor) showMostAccessedResource(events []domain.Event) {
@@ -100,13 +121,15 @@ func (monitor *Monitor) showMostAccessedResource(events []domain.Event) {
 	sort.Slice(urlCount, func(i, j int) bool {
 		return urlCount[i].Value > urlCount[j].Value
 	})
-	fmt.Println(DOG)
-	fmt.Printf(REPORT_MAX_HITS, date)
+
+	monitor.out.WriteString(fmt.Sprintf(REPORT_MAX_HITS, date))
+	// fmt.Printf(REPORT_MAX_HITS, date)
 
 	for i, hit := range urlCount {
 		if i > 2 {
 			break
 		}
-		fmt.Printf(ROW, hit.Key, hit.Value)
+		monitor.out.WriteString(fmt.Sprintf(ROW, hit.Key, hit.Value))
+		// fmt.Printf(ROW, hit.Key, hit.Value)
 	}
 }

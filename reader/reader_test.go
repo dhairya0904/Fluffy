@@ -2,9 +2,11 @@ package reader
 
 import (
 	"bufio"
+	"context"
 	"fluffy/domain"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -24,13 +26,16 @@ func TestReader(t *testing.T) {
 	defer os.Remove(f.Name())
 	w := bufio.NewWriter(f)
 
-	doneChan := make(chan bool)
-	go reader.StartPublishing(f.Name(), doneChan)
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go reader.StartPublishing(ctx, &wg, f.Name())
 	w.WriteString(SyntheticData + "\n")
 
 	go func() {
 		time.Sleep(2 * time.Second)
-		doneChan <- true
+		cancel()
 	}()
 
 	for event := range subs1 {
@@ -43,6 +48,7 @@ func TestReader(t *testing.T) {
 			t.Errorf("Error in parsing")
 		}
 	}
+	wg.Wait()
 }
 
 func assertEvent(event domain.Event) bool {
