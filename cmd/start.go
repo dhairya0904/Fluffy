@@ -37,6 +37,7 @@ var startCmd = &cobra.Command{
 
 		viper.SetConfigName("config")
 		viper.AddConfigPath(".")
+		viper.AddConfigPath("$HOME/fluffy")
 		viper.ReadInConfig()
 		reportTime := viper.GetInt(REPORT_TIME)
 		alertWindow := viper.GetInt(ALERT_WINDOW)

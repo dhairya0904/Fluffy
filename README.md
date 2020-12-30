@@ -6,6 +6,7 @@ fluffy is a command line application that allows you to monitor your logs locall
 
 ```
 * Install go using: https://golang.org/doc/install
+* Move this(fluffy) package to $Home
 ```
 
 ### Setup
@@ -81,10 +82,33 @@ Monitor out of alert 1 requests/sec at 2020-12-30 21:16:09.642211 +0000 UTC
 ### Testing
 
 #### Unit tests
-* Run *go test ./...* to run all unit tests
+* Run *go test ./...* to run all unit test
 * Run *go test -run {TestMethod}* to run individual tests
 
 #### Complete monitor testing
 * Start server using shell script
 * Move to directory generator and run *go run main.go*
 * It will generate data to given file
+
+### Improvements
+* Use docker conainer to daemonize the process instead of shell script
+* Implement Notification service like SNS to send notifications to customers
+* Remove heavy dependencies on hpcloud/tail and logparse. Write custom solution instead of using these dependencies directly.
+* Use some time-series internal db to serve the queries. Internal db can be used to store the events and query them efficiently. In certain time period this internal db can be flushed to disk, thus avoiding memory issues.
+* Better and clean CLI support.
+
+### Scalable Solution
+
+#### Use streaming service
+* Pull logs from servers.
+* Ingest them to any streaming service like kafka stream or AWS Kinesis Stream.
+* Use workers to pull these logs, analyze and persist them on time-series database.
+* For alerts, these databases can be polled to check if requests crossed the threshold.
+
+
+#### Set up your own logging clusters
+* It is much better to use prometheus and other similar tools for monitoring rather than parsing logs
+* A Prometheus server can be setup which exposes certain metrics api. It supports alerting as well.
+* Prometheus stores data in in-memory time-series db, which is regularly flushed to disk.
+* Grafana can be used to visualize metrics collection
+* AlertManager can be used to send alerts to client.

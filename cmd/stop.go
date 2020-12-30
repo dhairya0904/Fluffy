@@ -18,6 +18,7 @@ var stopCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		viper.SetConfigName("config")
 		viper.AddConfigPath(".")
+		viper.AddConfigPath("$HOME/fluffy")
 		viper.ReadInConfig()
 
 		if viper.GetInt("pID") == -1 {
