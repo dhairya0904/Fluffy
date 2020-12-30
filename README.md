@@ -19,7 +19,7 @@ fluffy is a command line application that allows you to monitor your logs locall
     pid: This will be used by CLI to keep track of daemon process.
     report-path: Path of the file where reports will be saved.
     report-time: Report will be generated after every given second.
-    threshold: If requests/second in given alert window exceeds threshold then alarm will be generated.
+    threshold: If requests/second in a given alert window exceeds threshold then alarm will be generated.
     ```
 * After changing config.yml, run 
     ```
@@ -89,12 +89,13 @@ Monitor out of alert 1 requests/sec at 2020-12-30 21:16:09.642211 +0000 UTC
 * Start server using shell script
 * Move to directory generator and run *go run main.go*
 * It will generate data to given file
+* tail report and alert file to get data
 
 ### Improvements
-* Use docker conainer to daemonize the process instead of shell script
+* Use docker container to daemonize the process instead of shell script
 * Implement Notification service like SNS to send notifications to customers
-* Remove heavy dependencies on hpcloud/tail and logparse. Write custom solution instead of using these dependencies directly.
-* Use some time-series internal db to serve the queries. Internal db can be used to store the events and query them efficiently. In certain time period this internal db can be flushed to disk, thus avoiding memory issues.
+* Remove heavy dependencies on hpcloud/tail and logparse. Write a custom solution instead of using these dependencies directly.
+* Use some time-series internal db to serve the queries. Internal db can be used to store the events and query them efficiently. In a certain time period this internal db can be flushed to disk, thus avoiding memory issues.
 * Better and clean CLI support.
 
 ### Scalable Solution
@@ -102,13 +103,13 @@ Monitor out of alert 1 requests/sec at 2020-12-30 21:16:09.642211 +0000 UTC
 #### Use streaming service
 * Pull logs from servers.
 * Ingest them to any streaming service like kafka stream or AWS Kinesis Stream.
-* Use workers to pull these logs, analyze and persist them on time-series database.
+* Use workers to pull these logs, analyze and persist them on a time-series database.
 * For alerts, these databases can be polled to check if requests crossed the threshold.
 
 
 #### Set up your own logging clusters
 * It is much better to use prometheus and other similar tools for monitoring rather than parsing logs
-* A Prometheus server can be setup which exposes certain metrics api. It supports alerting as well.
+* A Prometheus server can be set up which exposes certain metrics api. It supports alerting as well.
 * Prometheus stores data in in-memory time-series db, which is regularly flushed to disk.
 * Grafana can be used to visualize metrics collection
-* AlertManager can be used to send alerts to client.
+* AlertManager can be used to send alerts to clients.
